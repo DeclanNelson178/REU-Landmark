@@ -15,14 +15,16 @@ import random
 # Hyper paramters
 m, n, divisor = 0, 0, 0  # will reset these later
 
-size = 400
-batch_size = 100
-num_lm = 5
+size = 1000
+batch_size = 250
+num_lm = 20
 linear_dim1 = 10
 linear_dim2 = 2
-lbda = 1
-epoch = 100
-squeeze = 1
+lbda = 100000
+epoch = 5000
+squeeze = 2
+set_random = False
+k = 3
 
 
 class Net(nn.Module):
@@ -74,13 +76,20 @@ def load_data(size, num_lm):
     # make landmarks, select x random points in the data set
     land_marks = np.empty((num_lm, n))
     used_index = np.zeros(m)
-    for i in range(num_lm):
-        index = random.randint(0, m)
-        if used_index[index] == 0:
-            land_marks[i] = data[index]
-            used_index[index] = 1
-        else:
-            i -= 1
+    if random:
+        for i in range(num_lm):
+            index = random.randint(0, m)
+            if used_index[index] == 0:
+                land_marks[i] = data[index]
+                used_index[index] = 1
+            else:
+                i -= 1
+    else:
+        N = NearestNeighbors(n_neighbors=k).fit(data).kneighbors_graph(data).todense()
+        N = np.array(N)
+        num_connections = N.sum(axis=0).argsort()[::-1]
+        top_landmarks_idxs = num_connections[:num_lm]
+        land_marks = data[top_landmarks_idxs, :]
     divisor = int(size / batch_size)
     batch_loader = np.zeros((divisor, batch_size + num_lm, n))
     for i in range(divisor):
@@ -95,12 +104,12 @@ def load_data(size, num_lm):
 #
 def train_net(epoch, data, net, opti, nbr_graph_tensor):
     global divisor, batch_size
-    for batch_id in range(divisor):  # todo switch batch and epoch
-        batch = torch.from_numpy(data[batch_id]).float()
-        batch = batch.view(batch_size, -1)
-        batch_distances = pairwise_distances(batch)
-        batch_distances_masked = batch_distances * nbr_graph_tensor.float()
-        for num in range(epoch):
+    for num in range(epoch):
+        for batch_id in range(divisor):  # todo switch batch and epoch
+            batch = torch.from_numpy(data[batch_id]).float()
+            batch = batch.view(batch_size, -1)
+            batch_distances = pairwise_distances(batch)
+            batch_distances_masked = batch_distances * nbr_graph_tensor.float()
             global lbda
             out = net(batch, False)
             output_distances = pairwise_distances(out)
@@ -113,6 +122,7 @@ def train_net(epoch, data, net, opti, nbr_graph_tensor):
             opti.zero_grad()
             loss.backward()
             opti.step()
+            print('Epoch: %f, Step: %f, Loss: %.2f' % (epoch, batch_id + 1, loss.data.cpu().numpy()))
 
 
 def make_neighborhood(batch):
