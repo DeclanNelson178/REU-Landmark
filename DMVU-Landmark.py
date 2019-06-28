@@ -63,8 +63,8 @@ def normalize(data):
 
 
 # load data set, select land marks at random and remove from data set, return a train_loader
-def load_data(size, batch_size, num_lm):
-    global divisor, m, n
+def load_data(size, num_lm):
+    global divisor, m, n, batch_size
     # import data
     data, labels = sklearn.datasets.make_swiss_roll(size)
     m = np.size(data, 0)
@@ -94,9 +94,9 @@ def load_data(size, batch_size, num_lm):
 # def normalize(data)
 #
 def train_net(epoch, data, net, opti, nbr_graph_tensor):
-    global divisor
-    for batch_id in range(divisor):
-        batch = torch.from_numpy(data[batch_id])
+    global divisor, batch_size
+    for batch_id in range(divisor):  # todo switch batch and epoch
+        batch = torch.from_numpy(data[batch_id]).float()
         batch = batch.view(batch_size, -1)
         batch_distances = pairwise_distances(batch)
         batch_distances_masked = batch_distances * nbr_graph_tensor.float()
@@ -149,7 +149,7 @@ def pairwise_distances(x, y=None):
 
 
 def evaluate(data, net, t):
-    out = net(data, False)
+    out = net(torch.from_numpy(data).float(), False)
     # print(time.time() - start_time)
     out = out.detach().numpy()
     plt.scatter(out[:, 0], out[:, 1], c=t, marker='o')
@@ -158,7 +158,7 @@ def evaluate(data, net, t):
 
 def run():
     global num_lm
-    data_loader, land_marks, labels, data = load_data(size, batch_size, num_lm)
+    data_loader, land_marks, labels, data = load_data(size, num_lm)
     net = Net()
     opti = torch.optim.Adam(net.parameters(), weight_decay=1e-3)
     neighborhood = make_neighborhood(data_loader[0])
