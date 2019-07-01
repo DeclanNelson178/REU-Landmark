@@ -17,14 +17,16 @@ m, n, divisor = 0, 0, 0  # will reset these later
 
 num_lm = 20
 size = 1000 + num_lm
-batch_size = 250
+batch_size = 400
 linear_dim1 = 10
 linear_dim2 = 2
-lbda = 100000
+lbda = 1000000
 epoch = 5000
 squeeze = 2
 set_random = False
-k = 3
+k_start = 10  # number of nearest neighbors when selecting landmarks
+k_lm = 3  # number landmarks for each landmark
+k_dp = 4  # number landmarks for each point
 
 
 class Net(nn.Module):
@@ -63,6 +65,14 @@ def normalize(data):
     data = initGraph.transpose()
     return data
 
+def shuffle(data, labels):
+    holder_trash = np.empty((1000, 4))
+    holder_trash[:, :-1] = data[:, :]
+    holder_trash[:, -1] = labels
+    np.random.shuffle(holder_trash)
+    data = holder_trash[:, :-1]
+    labels = holder_trash[:, -1]
+    return data, labels
 
 # load data set, select land marks at random and remove from data set, return a train_loader
 def load_data(size, num_lm):
@@ -82,20 +92,21 @@ def load_data(size, num_lm):
             data = np.delete(data, index, axis=0)
             labels = np.delete(labels, index, axis=0)
     else:
-        N = NearestNeighbors(n_neighbors=k).fit(data).kneighbors_graph(data).todense()
+        N = NearestNeighbors(n_neighbors=k_start).fit(data).kneighbors_graph(data).todense()
         N = np.array(N)
         num_connections = N.sum(axis=0).argsort()[::-1]
         top_landmarks_idxs = num_connections[:num_lm]
         land_marks = data[top_landmarks_idxs, :]
         data = np.delete(data, top_landmarks_idxs, axis=0)
 
-    landmark_neighbors = NearestNeighbors(n_neighbors=3).fit(land_marks).kneighbors_graph(land_marks).todense()
+    landmark_neighbors = NearestNeighbors(n_neighbors=k_lm).fit(land_marks).kneighbors_graph(land_marks).todense()
     divisor = int(size / batch_size)
     batch_loader = np.zeros((divisor, batch_size + num_lm, n))
     batch_graph = np.zeros((divisor, batch_size + num_lm, batch_size + num_lm))
+    data, labels = shuffle(data, labels)
     for i in range(divisor):
         holder = data[batch_size * i: batch_size * (i + 1)]
-        holder_graph = NearestNeighbors(n_neighbors=3).fit(land_marks).kneighbors_graph(holder).todense()
+        holder_graph = NearestNeighbors(n_neighbors=k_dp).fit(land_marks).kneighbors_graph(holder).todense()
         for j in range(batch_size):  # copy over the holder graph
             for l in range(num_lm):
                 if holder_graph[j, l] == 1:
