@@ -16,7 +16,7 @@ from mpl_toolkits import mplot3d
 # Hyper paramters
 m, n, divisor = 0, 0, 0  # will reset these later
 
-num_lm = 40
+num_lm = 80
 size = 1000 + num_lm
 batch_size = 250
 linear_dim1 = 10
@@ -26,8 +26,8 @@ epoch = 5000
 squeeze = 2
 set_random = False
 k_start = 3  # how you find landmarks based off of number of nearest neighbors
-k_lm = 3  # number of landmarks each landmark has
-k_other = 3  # number of landmarks each regular points has
+k_lm = 1  # number of landmarks each landmark has
+k_other = 2 # number of landmarks each regular points has
 
 class Net(nn.Module):
     def __init__(self):
