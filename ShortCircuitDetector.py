@@ -112,6 +112,7 @@ def load_data(size, num_lm):
     batch_graph = np.zeros((divisor, batch_size + num_lm, batch_size + num_lm))
     for i in range(divisor):
         holder = data[batch_size * i: batch_size * (i + 1)]
+        holderLabel = labels[batch_size * i: batch_size *(i+1)] #For ShortCircuit Detection
         holder_graph = NearestNeighbors(n_neighbors=k_other).fit(land_marks).kneighbors_graph(holder).todense()
         for j in range(batch_size):  # copy over the holder graph
             for l in range(num_lm):
@@ -124,18 +125,18 @@ def load_data(size, num_lm):
                     batch_graph[i, j + batch_size, l + batch_size] = 1
                     batch_graph[i, l + batch_size, j + batch_size] = 1
         holder = np.concatenate((holder, land_marks))
-        fig = plt.figure()
+        fig = plt.figure() #For Short Circuit Detection
         ax = plt.axes(projection='3d')
         landmarkplaceholder = []
         for j in range(num_lm):
             landmarkplaceholder.append(batch_size+j)
-        ax.scatter(data[:,0],data[:,1],data[:,2],c=labels)
-        ax.scatter(holder[landmarkplaceholder,0],holder[landmarkplaceholder,1],holder[landmarkplaceholder,2],c="Red",marker="^",alpha=1,s=100)
+        ax.scatter(holder[range(batch_size),0],holder[range(batch_size),1],holder[range(batch_size),2],c=holderLabel)
+        ax.scatter(holder[landmarkplaceholder,0],holder[landmarkplaceholder,1],holder[landmarkplaceholder,2],c="Red",marker="^",alpha=1)
         for o in range(batch_size):
             for j in range(batch_size,batch_size+num_lm):
                 if batch_graph[i][o][j] > 0:
-                    ax.plot([holder[o][0],holder[j][0]],[holder[o][1],holder[j][1]],[holder[o][2],holder[j][2]], c='Red', alpha=0.2)
-        plt.show()
+                    ax.plot([holder[o][0],holder[j][0]],[holder[o][1],holder[j][1]],[holder[o][2],holder[j][2]], c='Red', alpha=0.5)
+        plt.show() #End of Short Circuit Detection Code
         batch_loader[i] = holder
     batch_size += num_lm
     return batch_loader, land_marks, labels, data, batch_graph,top_landmarks_idxs, saveData, saveLabels
