@@ -22,13 +22,13 @@ batch_size = 400
 size = (batch_size * 4) + num_lm
 linear_dim1 = 10
 linear_dim2 = 2
-lbda = 100000
+lbda = 100000  # 1000000
 epoch = 5000
 squeeze = 2
 set_random = False
 k_start = 3  # how you find landmarks based off of number of nearest neighbors
-k_lm = 2  # number of landmarks each landmark has
-k_other = 3  # number of landmarks each regular points has
+k_lm = 4  # number of landmarks each landmark has
+k_other = 4  # number of landmarks each regular points has
 
 
 class Net(nn.Module):
