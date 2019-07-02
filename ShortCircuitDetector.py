@@ -17,7 +17,7 @@ from mpl_toolkits import mplot3d
 # Hyper paramters
 m, n, divisor = 0, 0, 0  # will reset these later
 
-num_lm = 40
+num_lm = 80
 size = 1000 + num_lm
 batch_size = 250
 linear_dim1 = 10
@@ -126,8 +126,11 @@ def load_data(size, num_lm):
         holder = np.concatenate((holder, land_marks))
         fig = plt.figure()
         ax = plt.axes(projection='3d')
+        landmarkplaceholder = []
+        for j in range(num_lm):
+            landmarkplaceholder.append(batch_size+j)
         ax.scatter(data[:,0],data[:,1],data[:,2],c=labels)
-        ax.scatter(data[top_landmarks_idxs,0],data[top_landmarks_idxs,1],data[top_landmarks_idxs,2],c="Red",marker="^",alpha=1,s=100)
+        ax.scatter(holder[landmarkplaceholder,0],holder[landmarkplaceholder,1],holder[landmarkplaceholder,2],c="Red",marker="^",alpha=1,s=100)
         for o in range(batch_size):
             for j in range(batch_size,batch_size+num_lm):
                 if batch_graph[i][o][j] > 0:
