@@ -30,7 +30,7 @@ linear_dim5 = 2
 lbda = 100000  # 1000000
 epoch = 5000
 squeeze = 2
-set_random = True
+set_random = False
 temp_subset = num_lm + (batch_size * 10)
 
 k_start = 3  # how you find landmarks based off of number of nearest neighbors
@@ -239,7 +239,8 @@ def evaluate(data, net):
     out = net(temp_data, False)
     # print(time.time() - start_time)
     out = out.detach().numpy()
-    plt.scatter(out[:, 0], out[:, 1], c=temp_labels, marker='o')
+    cmap = colors.ListedColormap(['red','orange','yellow','green','cyan','blue','purple','pink','magenta','brown'])
+    plt.scatter(out[:, 0], out[:, 1], c=temp_labels, cmap = cmap,marker='o')
     plt.show()
 
 
@@ -253,6 +254,8 @@ def run():
     train_lms(epoch, land_marks, net, opti, landmark_neighbors)
     train_net(epoch, data_loader, net, opti, batch_graph)
     evaluate(test_dataset, net)
+    time_finish = time.time() - start_time
+    print(time_finish)
 
 
 run()
