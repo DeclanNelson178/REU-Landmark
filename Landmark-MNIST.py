@@ -20,7 +20,7 @@ random.seed(2)
 # Hyper paramters
 m, n, divisor = 0, 0, 0  # will reset these later
 
-num_lm = 20
+num_lm = 30
 batch_size = 200
 size = 10000
 linear_dim1 = 500
@@ -28,7 +28,7 @@ linear_dim2 = 250
 linear_dim3 = 125
 linear_dim4 = 50
 linear_dim5 = 2
-lbda = 100000000  # 1000000
+lbda = 90000  # 100000, 90000
 epoch = 500
 squeeze = 2
 set_random = False
