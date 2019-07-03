@@ -9,6 +9,7 @@ from sklearn.neighbors import NearestNeighbors
 import numpy as np
 import matplotlib.pyplot as plt
 import time
+from matplotlib import colors
 start_time = time.time()
 torch.manual_seed(2)
 import random
@@ -27,8 +28,8 @@ linear_dim2 = 250
 linear_dim3 = 125
 linear_dim4 = 50
 linear_dim5 = 2
-lbda = 100000  # 1000000
-epoch = 5000
+lbda = 100000000  # 1000000
+epoch = 500
 squeeze = 2
 set_random = False
 temp_subset = num_lm + (batch_size * 10)
@@ -227,24 +228,34 @@ def pairwise_distances(x, y=None):
     return torch.clamp(dist, 0.0, np.inf)
 
 
-def evaluate(data, net):
-    temp_data = data.data
-    temp_labels = data.test_labels.numpy()
-    data = torch.zeros((size, 28 ** 2))
-    for i in range(size):
-        data[i] = temp_data[i].view(-1, 28 ** 2)
-    temp_data = data
+def evaluate(test_loader, net, num_points):
+    holder_graph = np.empty((num_points, 2))
+    holder_labels = np.empty((num_points))
+    correct = 0
+    total = 0
+    x = 0
+    for images, labels in test_loader:
+        x += 1
+        images = images.reshape(-1, 28 * 28)
+        out = net(images, False)
+        none, predicted = torch.max(out.data, 1)
+        total += labels.size(0)
+        correct += (predicted == labels).sum().item()
+        print('Accuracy of the network on the 10000 test images: {} %'.format(100 * correct / total))
+        out = out.detach().numpy()
+        holder_graph = out
+        holder_labels = labels
+        x += 1
 
-    # data = np.concatenate((data, landmarks), axis=0)
-    out = net(temp_data, False)
-    # print(time.time() - start_time)
-    out = out.detach().numpy()
-    cmap = colors.ListedColormap(['red','orange','yellow','green','cyan','blue','purple','pink','magenta','brown'])
-    plt.scatter(out[:, 0], out[:, 1], c=temp_labels, cmap = cmap,marker='o')
+    cmap = colors.ListedColormap(
+        ['red', 'orange', 'yellow', 'green', 'cyan', 'blue', 'purple', 'pink', 'magenta', 'brown'])
+    plt.scatter(holder_graph[:, 0], holder_graph[:, 1], c=holder_labels, cmap=cmap, marker='o')
     plt.show()
 
 
+
 def run():
+    num_points = 250
     global num_lm
     data_loader, data, batch_graph, landmark_neighbors, test_dataset, land_marks = load_data(size, num_lm)
     print("done loading data")
@@ -253,9 +264,10 @@ def run():
     print("starting training")
     train_lms(epoch, land_marks, net, opti, landmark_neighbors)
     train_net(epoch, data_loader, net, opti, batch_graph)
-    evaluate(test_dataset, net)
-    time_finish = time.time() - start_time
-    print(time_finish)
+    # change test_loader batch size to increase number of points tested on
+    test_loader = torch.utils.data.DataLoader(dataset=test_dataset, batch_size=num_points, shuffle=False)
+    evaluate(test_loader, net, num_points)
+
 
 
 run()
