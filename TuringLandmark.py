@@ -96,7 +96,6 @@ def load_data(size, num_lm):
     temp_data = normalize(temp_data.numpy())
     temp_data = torch.from_numpy(temp_data)
 
-
     # todo remove this
     temp_labels = temp_labels[:temp_subset]
     size = temp_subset
@@ -268,7 +267,6 @@ def evaluate(test_loader, net, num_points):
     return final_score
 
 
-
 def run():
     num_points = 10000
     global num_lm
@@ -285,5 +283,19 @@ def run():
     test_loader = torch.utils.data.DataLoader(dataset=test_dataset, batch_size=num_points, shuffle=False)
     return evaluate(test_loader, net, num_points)
 
+
+linear_dim2 = 2
+while linear_dim2 < 10:
+    linear_dim1 = 700
+    while linear_dim1 > linear_dim2:
+        num_lm = 10
+        while num_lm < 241:
+            batch_size = 200
+            while batch_size < 501:
+                run()
+                batch_size += 20
+            num_lm += 10
+        linear_dim1 -= 5
+    linear_dim2 += 1
 
 run()
