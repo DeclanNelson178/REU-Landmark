@@ -14,33 +14,30 @@ start_time = time.time()
 torch.manual_seed(2)
 import random
 from mpl_toolkits import mplot3d
+import torch.nn.functional as F
+
 random.seed(2)
 
 
 # Hyper paramters
 m, n, divisor = 0, 0, 0  # will reset these later
 
-num_lm = 10
-batch_size = 400
-size = 1200
-num_lm = 30
-batch_size = 200
+num_lm = 200  # must be a multiple of ten
+batch_size = 250
 size = 10000
 linear_dim1 = 500
 linear_dim2 = 250
 linear_dim3 = 10
 linear_dim4 = 50
 linear_dim5 = 2
-lbda = 1000000000  # 1000000
-lbda = 90000  # 100000, 90000
+lbda = 100000  # 1000000
 epoch = 500
-squeeze = 2
 set_random = False
 temp_subset = num_lm + (batch_size * 10)
 
 k_start = 3  # how you find landmarks based off of number of nearest neighbors
-k_lm = 4  # number of landmarks each landmark has
-k_other = 4  # number of landmarks each regular points has
+k_lm = 5  # number of landmarks each landmark has
+k_other = 10  # number of landmarks each regular points has
 
 
 def normalize(data):
@@ -68,9 +65,9 @@ class Net(nn.Module):
 
     def encode(self, x):
         p = nn.LeakyReLU()
-        x = p(self.f(x))
-        x = self.f2(x)
-        # x = p(self.f3(x))
+        x = F.leaky_relu((self.f(x)))
+        x = F.leaky_relu((self.f2(x)))
+        x = self.f3(x)
         # x = p(self.f4(x))
         # x = self.f5(x)
         return x
@@ -106,7 +103,6 @@ def load_data(size, num_lm):
     temp_data = normalize(temp_data.numpy())
     temp_data = torch.from_numpy(temp_data)
 
-
     # todo remove this
     temp_labels = temp_labels[:temp_subset]
     size = temp_subset
@@ -117,9 +113,9 @@ def load_data(size, num_lm):
         data[i] = temp_data[i].view(-1, 28 ** 2)
 
     temp_data = data
+
     # make landmarks, select x random points in the data set
     land_marks = np.empty((num_lm, n))
-    top_landmarks_idxs = []
     print("picking landmarks")
     if set_random:
         for i in range(num_lm):
@@ -129,12 +125,42 @@ def load_data(size, num_lm):
             temp_data = np.delete(temp_data, index, axis=0)
             temp_labels = np.delete(temp_labels, index, axis=0)
     else:
-        N = NearestNeighbors(n_neighbors=k_start).fit(temp_data).kneighbors_graph(temp_data).todense()
-        N = np.array(N)
-        num_connections = N.sum(axis=0).argsort()[::-1]
-        top_landmarks_idxs = num_connections[:num_lm]
+        # N = NearestNeighbors(n_neighbors=k_start).fit(temp_data).kneighbors_graph(temp_data).todense()
+        # N = np.array(N)
+        # num_connections = N.sum(axis=0).argsort()[::-1]
+        # top_landmarks_idxs = num_connections[:num_lm]
+        # land_marks = temp_data[top_landmarks_idxs, :]
+        # temp_data = np.delete(temp_data, top_landmarks_idxs, axis=0)
+        # try and choose a single landmark from every number label
+        top_landmarks_idxs = np.zeros(num_lm, dtype=np.int32)
+        # used_nums = np.zeros(num_lm, dtype=np.int8)
+        num_each  = int(num_lm / 10)
+        # for i in range(m):
+        #     index = temp_labels[i].numpy()  # index is the label number
+        #     i = int(i)
+        #     if used_nums[index] == 0:
+        #         top_landmarks_idxs[index] = i
+        #         used_nums[index] = 1
+        # land_marks = temp_data[top_landmarks_idxs, :]
+        # temp_data = np.delete(temp_data, top_landmarks_idxs, axis=0)
+
+        for i in range(10):
+            count = 0
+            for j in range(m):
+                if temp_labels[j] == i and count < num_each:
+                    index = i * num_each + count
+                    count += 1
+                    if i == 5:
+                        print(j)
+                    top_landmarks_idxs[index] = j
+        print(top_landmarks_idxs)
         land_marks = temp_data[top_landmarks_idxs, :]
         temp_data = np.delete(temp_data, top_landmarks_idxs, axis=0)
+
+
+
+
+
 
     print("neighborhood creation")
     landmark_neighbors = NearestNeighbors(n_neighbors=k_lm).fit(land_marks).kneighbors_graph(land_marks).todense()
@@ -196,10 +222,6 @@ def train_lms(epoch, land_marks, net, opti, landmark_neighbors):
         output_distances_masked = output_distances * neighbor_graph.float()
         nbr_diff = torch.abs((output_distances_masked - batch_distances_masked))
         nbr_distance = nbr_diff.norm()
-        print('nbr distance')
-        print(nbr_distance)
-        print('variance term')
-        print(lbda * (1 / out[:, 0].var() + 1 / out[:, 1].var()))
         loss = (1 / lbda) * nbr_distance + lbda * (1 / out[:, 0].var() + 1 / out[:, 1].var())  # lmbda*(1/output.var(dim=0)[0] + 1/output.var(dim=0)[1]) #lmbd
         opti.zero_grad()
         loss.backward()
