@@ -17,7 +17,7 @@ random.seed(2)
 # Hyper paramters
 m, n, divisor = 0, 0, 0  # will reset these later
 
-num_lm = 10
+num_lm = 230
 batch_size = 250
 size = 10000
 linear_dim1 = 100
@@ -110,7 +110,6 @@ def load_data(size, num_lm):
 
     # make landmarks, select x random points in the data set
     land_marks = np.empty((num_lm, n))
-    print("picking landmarks")
     if set_random:
         for i in range(num_lm):
             index = random.randint(0, size - i)
@@ -145,7 +144,6 @@ def load_data(size, num_lm):
                     index = i * num_each + count
                     count += 1
                     top_landmarks_idxs[index] = j
-        print(top_landmarks_idxs)
         land_marks = temp_data[top_landmarks_idxs, :]
         temp_data = np.delete(temp_data, top_landmarks_idxs, axis=0)
 
