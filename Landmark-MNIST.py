@@ -20,15 +20,25 @@ random.seed(2)
 # Hyper paramters
 m, n, divisor = 0, 0, 0  # will reset these later
 
+<<<<<<< HEAD
+num_lm = 10
+batch_size = 400
+size = 1200
+=======
 num_lm = 30
 batch_size = 200
 size = 10000
+>>>>>>> 0b612fc205be44573a9d9e9a22574d511b97a53a
 linear_dim1 = 500
-linear_dim2 = 250
+linear_dim2 = 10
 linear_dim3 = 125
 linear_dim4 = 50
 linear_dim5 = 2
+<<<<<<< HEAD
+lbda = 1000000000  # 1000000
+=======
 lbda = 90000  # 100000, 90000
+>>>>>>> 0b612fc205be44573a9d9e9a22574d511b97a53a
 epoch = 500
 squeeze = 2
 set_random = False
@@ -36,7 +46,21 @@ temp_subset = num_lm + (batch_size * 10)
 
 k_start = 3  # how you find landmarks based off of number of nearest neighbors
 k_lm = 4  # number of landmarks each landmark has
-k_other = 3  # number of landmarks each regular points has
+k_other = 4  # number of landmarks each regular points has
+
+
+def normalize(data):
+    row = np.size(data, 0)
+    col = np.size(data, 1)
+
+    for j in range(col):
+        col_sum = 0
+        for i in range(row):
+            col_sum = col_sum + data[i][j]
+        col_sum = col_sum / row
+        for i in range(row):
+            data[i][j] = data[i][j] - col_sum
+    return data
 
 
 class Net(nn.Module):
@@ -51,10 +75,10 @@ class Net(nn.Module):
     def encode(self, x):
         p = nn.LeakyReLU()
         x = p(self.f(x))
-        x = p(self.f2(x))
-        x = p(self.f3(x))
-        x = p(self.f4(x))
-        x = self.f5(x)
+        x = self.f2(x)
+        # x = p(self.f3(x))
+        # x = p(self.f4(x))
+        # x = self.f5(x)
         return x
 
     def decode(self, x):
@@ -65,21 +89,6 @@ class Net(nn.Module):
         if decode:
             x = self.decode(x)
         return x
-
-
-def normalize(data):
-    global squeeze, m, n
-    for j in range(n):
-        col_sum = 0
-        for i in range(m):
-            col_sum += data[i][j]
-        col_sum /= m
-        for i in range(m):
-            data[i][j] -= col_sum
-    initGraph = data.transpose()
-    initGraph[1] = initGraph[1] / squeeze
-    data = initGraph.transpose()
-    return data
 
 
 # load data set, select land marks at random and remove from data set, return a train_loader
@@ -98,6 +107,11 @@ def load_data(size, num_lm):
     print("making temp")
     temp_data = train_dataset.data
     temp_labels = train_dataset.train_labels
+
+    # normalize
+    temp_data = normalize(temp_data.numpy())
+    temp_data = torch.from_numpy(temp_data)
+
 
     # todo remove this
     temp_labels = temp_labels[:temp_subset]
@@ -169,7 +183,7 @@ def train_net(epoch, data, net, opti, batch_graph):
             # Find the difference between |img_i - img_j|^2 and |output_i - output_j|^2
             nbr_diff = torch.abs((output_distances_masked - batch_distances_masked))
             nbr_distance = nbr_diff.norm()
-            loss = nbr_distance + lbda * (1 / out[:, 0].var() + 1 / out[:, 1].var())  # lmbda*(1/output.var(dim=0)[0] + 1/output.var(dim=0)[1]) #lmbd
+            loss = (1 / lbda) * nbr_distance + lbda * (1 / out[:, 0].var() + 1 / out[:, 1].var())  # lmbda*(1/output.var(dim=0)[0] + 1/output.var(dim=0)[1]) #lmbd
             opti.zero_grad()
             loss.backward()
             opti.step()
@@ -188,7 +202,11 @@ def train_lms(epoch, land_marks, net, opti, landmark_neighbors):
         output_distances_masked = output_distances * neighbor_graph.float()
         nbr_diff = torch.abs((output_distances_masked - batch_distances_masked))
         nbr_distance = nbr_diff.norm()
-        loss = nbr_distance + lbda * (1 / out[:, 0].var() + 1 / out[:, 1].var())  # lmbda*(1/output.var(dim=0)[0] + 1/output.var(dim=0)[1]) #lmbd
+        print('nbr distance')
+        print(nbr_distance)
+        print('variance term')
+        print(lbda * (1 / out[:, 0].var() + 1 / out[:, 1].var()))
+        loss = (1 / lbda) * nbr_distance + lbda * (1 / out[:, 0].var() + 1 / out[:, 1].var())  # lmbda*(1/output.var(dim=0)[0] + 1/output.var(dim=0)[1]) #lmbd
         opti.zero_grad()
         loss.backward()
         opti.step()
@@ -234,9 +252,11 @@ def evaluate(test_loader, net, num_points):
     correct = 0
     total = 0
     x = 0
+    final_score = 0
     for images, labels in test_loader:
         x += 1
         images = images.reshape(-1, 28 * 28)
+        print('Using test data')
         out = net(images, False)
         none, predicted = torch.max(out.data, 1)
         total += labels.size(0)
@@ -246,28 +266,31 @@ def evaluate(test_loader, net, num_points):
         holder_graph = out
         holder_labels = labels
         x += 1
-
-    cmap = colors.ListedColormap(
-        ['red', 'orange', 'yellow', 'green', 'cyan', 'blue', 'purple', 'pink', 'magenta', 'brown'])
-    plt.scatter(holder_graph[:, 0], holder_graph[:, 1], c=holder_labels, cmap=cmap, marker='o')
-    plt.show()
-
+        final_score = 100 * correct / total
+    return final_score
+    # cmap = colors.ListedColormap(
+    #     ['red', 'orange', 'yellow', 'green', 'cyan', 'blue', 'purple', 'pink', 'magenta', 'brown'])
+    # plt.scatter(holder_graph[:, 0], holder_graph[:, 1], c=holder_labels, cmap=cmap, marker='o')
+    # plt.show()
 
 
 def run():
-    num_points = 250
+    num_points = 10000
     global num_lm
     data_loader, data, batch_graph, landmark_neighbors, test_dataset, land_marks = load_data(size, num_lm)
     print("done loading data")
     net = Net()
-    opti = torch.optim.Adam(net.parameters(), weight_decay=1e-3)
+    opti = torch.optim.SGD(net.parameters(), lr=.0001, momentum=.1)
     print("starting training")
+    for i in net.modules():
+        if isinstance(i, nn.Linear):
+            i.weight.data.normal_(0, .1)
+
     train_lms(epoch, land_marks, net, opti, landmark_neighbors)
     train_net(epoch, data_loader, net, opti, batch_graph)
     # change test_loader batch size to increase number of points tested on
     test_loader = torch.utils.data.DataLoader(dataset=test_dataset, batch_size=num_points, shuffle=False)
-    evaluate(test_loader, net, num_points)
+    return evaluate(test_loader, net, num_points)
 
 
-
-run()
+print(run())
