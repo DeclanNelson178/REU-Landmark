@@ -290,13 +290,14 @@ linear_dim2 = 2 + number
 linear_dim1 = 700
 while linear_dim1 > linear_dim2:
     num_lm = 10
-    while num_lm < 240:
-        batch_size = 250
-        while batch_size < 300:
+    while num_lm < 150:
+        batch_size = 300
+        try:
             run()
-            batch_size += 20
+        except:
+            print("Error with'Hyperparameters: num_lm: %f, batch_size: %f, lbda: %f, k_start: %f, k_lm: %f, k_other: %f, First Dimension: %f, Second Dimension: %f" % (num_lm,batch_size,lbda,k_start,k_lm,k_other, linear_dim1, linear_dim2))
         num_lm += 10
-    linear_dim1 -= 5
+    linear_dim1 -= 100
 
 
 run()
