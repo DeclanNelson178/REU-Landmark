@@ -11,6 +11,7 @@ import time
 start_time = time.time()
 torch.manual_seed(2)
 import random
+import sys
 random.seed(2)
 
 
@@ -63,9 +64,9 @@ class Net(nn.Module):
         p = nn.LeakyReLU()
         x = p(self.f(x))
         x = self.f2(x)
-        x = p(self.f3(x))
-        x = p(self.f4(x))
-        x = self.f5(x)
+        #x = p(self.f3(x))
+        #x = p(self.f4(x))
+        #x = self.f5(x)
         return x
 
     def decode(self, x):
@@ -257,7 +258,7 @@ def evaluate(test_loader, net, num_points):
         none, predicted = torch.max(out.data, 1)
         total += labels.size(0)
         correct += (predicted == labels).sum().item()
-        print('Hyperparameters: num_lm: %f, batch_size: %f, lbda: %f, k_start: %f, k_lm: %f, k_other: %f' % (num_lm,batch_size,lbda,k_start,k_lm,k_other))
+        print('Hyperparameters: num_lm: %f, batch_size: %f, lbda: %f, k_start: %f, k_lm: %f, k_other: %f, First Dimension: %f, Second Dimension: %f' % (num_lm,batch_size,lbda,k_start,k_lm,k_other, linear_dim1, linear_dim2))
         print('Accuracy of the network on the 10000 test images: {} %'.format(100 * correct / total))
         out = out.detach().numpy()
         holder_graph = out
@@ -283,19 +284,19 @@ def run():
     test_loader = torch.utils.data.DataLoader(dataset=test_dataset, batch_size=num_points, shuffle=False)
     return evaluate(test_loader, net, num_points)
 
+number = int(sys.argv[1])
+linear_dim2 = 2 + number
 
-linear_dim2 = 2
-while linear_dim2 < 10:
-    linear_dim1 = 700
-    while linear_dim1 > linear_dim2:
-        num_lm = 10
-        while num_lm < 241:
-            batch_size = 200
-            while batch_size < 501:
-                run()
-                batch_size += 20
-            num_lm += 10
-        linear_dim1 -= 5
-    linear_dim2 += 1
+linear_dim1 = 700
+while linear_dim1 > linear_dim2:
+    num_lm = 10
+    while num_lm < 240:
+        batch_size = 250
+        while batch_size < 300:
+            run()
+            batch_size += 20
+        num_lm += 10
+    linear_dim1 -= 5
+
 
 run()
