@@ -1,0 +1,6 @@
+Hyperparameters: num_lm: 20.000000, batch_size: 310.000000, lbda: 90000.000000, k_start: 3.000000, k_lm: 3.000000, k_other: 5.000000, First Dimension: 700.000000, Second Dimension: 5.000000
+Accuracy of the network on the 10000 test images: 20.78 %
+Hyperparameters: num_lm: 150.000000, batch_size: 400.000000, lbda: 90000.000000, k_start: 3.000000, k_lm: 3.000000, k_other: 5.000000, First Dimension: 615.000000, Second Dimension: 8.000000
+Accuracy of the network on the 10000 test images: 22.57 %
+Hyperparameters: num_lm: 80.000000, batch_size: 330.000000, lbda: 90000.000000, k_start: 3.000000, k_lm: 3.000000, k_other: 5.000000, First Dimension: 695.000000, Second Dimension: 10.000000
+Accuracy of the network on the 10000 test images: 21.07 %
