@@ -258,8 +258,9 @@ def evaluate(test_loader, net, num_points):
         none, predicted = torch.max(out.data, 1)
         total += labels.size(0)
         correct += (predicted == labels).sum().item()
-        print('Hyperparameters: num_lm: %f, batch_size: %f, lbda: %f, k_start: %f, k_lm: %f, k_other: %f, First Dimension: %f, Second Dimension: %f' % (num_lm,batch_size,lbda,k_start,k_lm,k_other, linear_dim1, linear_dim2))
-        print('Accuracy of the network on the 10000 test images: {} %'.format(100 * correct / total))
+        #print('Hyperparameters: num_lm: %f, batch_size: %f, lbda: %f, k_start: %f, k_lm: %f, k_other: %f, First Dimension: %f, Second Dimension: %f' % (num_lm,batch_size,lbda,k_start,k_lm,k_other, linear_dim1, linear_dim2))
+        #print('Accuracy of the network on the 10000 test images: {} %'.format(100 * correct / total))
+        print('%f,%f,%f,%f,%f,%f,%f,%f,%f' % ((100 * correct / total), num_lm, batch_size , lbda, k_start , k_lm, k_other , linear_dim1 , linear_dim2 ))
         out = out.detach().numpy()
         holder_graph = out
         holder_labels = labels
@@ -285,19 +286,30 @@ def run():
     return evaluate(test_loader, net, num_points)
 
 number = int(sys.argv[1])
-linear_dim2 = 2 + number
 
-linear_dim1 = 700
-while linear_dim1 > linear_dim2:
-    num_lm = 10
-    while num_lm < 150:
-        batch_size = 300
-        try:
-            run()
-        except:
-            print("Error with'Hyperparameters: num_lm: %f, batch_size: %f, lbda: %f, k_start: %f, k_lm: %f, k_other: %f, First Dimension: %f, Second Dimension: %f" % (num_lm,batch_size,lbda,k_start,k_lm,k_other, linear_dim1, linear_dim2))
-        num_lm += 10
-    linear_dim1 -= 100
+num_lm = 150
+batch_size = 400
+linear_dim1 = 615
+linear_dim2 = 8
+
+#linear_dim2 = 2 + number
+#linear_dim1 = 700
+lbda = 10000 + (10000 * number)
+
+k_start = 1
+while k_start < 20
+    k_lm = 1
+    while k_lm < 20:
+        k_other = 1
+        while k_other < 20:
+            try:
+                temp_subset = num_lm + (batch_size * 15)
+                run()
+            except:
+                print("Error with'Hyperparameters: num_lm: %f, batch_size: %f, lbda: %f, k_start: %f, k_lm: %f, k_other: %f, First Dimension: %f, Second Dimension: %f" % (num_lm,batch_size,lbda,k_start,k_lm,k_other, linear_dim1, linear_dim2))
+            k_other += 1 
+        k_lm += 1
+    k_start += 1
 
 
 run()
