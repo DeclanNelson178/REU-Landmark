@@ -27,11 +27,8 @@ epoch = 5000
 squeeze = 2
 set_random = False
 k_start = 3  # how you find landmarks based off of number of nearest neighbors
-<<<<<<< HEAD
 k_lm = 5  # number of landmarks each landmark has
-=======
 k_lm = 4  # number of landmarks each landmark has
->>>>>>> 3ffe59c3042a5c973d146b32df12baaa8af239d9
 k_other = 4  # number of landmarks each regular points has
 
 

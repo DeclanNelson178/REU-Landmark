@@ -4,11 +4,12 @@ from scipy.sparse.csgraph import laplacian
 from sklearn.neighbors import NearestNeighbors
 import sklearn.datasets
 import matplotlib.pyplot as plt
+import time
 
 
 class LandmarkMaximumVarianceUnfolding:
 
-    def __init__(self, equation="berkley", landmarks=50, solver=cp.SCS, solver_tol=1e-2,
+    def __init__(self, equation="berkley", landmarks=300, solver=cp.SCS, solver_tol=1e-2,
                  eig_tol=1.0e-10, solver_iters=2500, warm_start=False, seed=None):
         """
         :param equation: A string either "berkley" or "wikipedia" to represent
@@ -33,7 +34,7 @@ class LandmarkMaximumVarianceUnfolding:
         self.seed = seed
         self.neighborhood_graph = None
 
-    def fit(self, data, k):
+    def fit(self, data, k, neighbor_num):
         """
         The method to fit an MVU model to the data.
         :param data: The data to which the model will be fitted.
@@ -49,7 +50,6 @@ class LandmarkMaximumVarianceUnfolding:
         # Calculate the nearest neighbors of each data point and build a graph
         N = NearestNeighbors(n_neighbors=k).fit(data).kneighbors_graph(data).todense()
         N = np.array(N)
-        print(N)
 
         # Sort the neighbor graph to find the points with the most connections
         num_connections = N.sum(axis=0).argsort()[::-1]
@@ -59,7 +59,7 @@ class LandmarkMaximumVarianceUnfolding:
         top_landmarks = data[top_landmarks_idxs, :]
 
         # Compute the nearest neighbors for all of the landmarks so they are all connected
-        L = NearestNeighbors(n_neighbors=3).fit(top_landmarks).kneighbors_graph(top_landmarks).todense()
+        L = NearestNeighbors(n_neighbors=neighbor_num).fit(top_landmarks).kneighbors_graph(top_landmarks).todense()
         L = np.array(L)
 
         # The data without the landmarks
@@ -67,7 +67,7 @@ class LandmarkMaximumVarianceUnfolding:
         new_data = np.delete(data, top_landmarks_idxs, axis=0)
 
         # Construct a neighborhood graph where each point finds its closest landmark
-        l = NearestNeighbors(n_neighbors=3).fit(top_landmarks).kneighbors_graph(new_data).todense()
+        l = NearestNeighbors(n_neighbors=neighbor_num).fit(top_landmarks).kneighbors_graph(new_data).todense()
         l = np.array(l)
 
         # Reset N to all 0's
@@ -147,7 +147,7 @@ class LandmarkMaximumVarianceUnfolding:
         val = Q.value
         return val
 
-    def fit_transform(self, data, dim, k):
+    def fit_transform(self, data, dim, k, neighbor_num):
         """
         The method to fit and transform an MVU model to the data.
         :param data: The data to which the model will be fitted.
@@ -156,7 +156,7 @@ class LandmarkMaximumVarianceUnfolding:
         :return: embedded_data: The embedded form of the data.
         """
 
-        embedded_gramian = self.fit(data, k)
+        embedded_gramian = self.fit(data, k, neighbor_num)
 
         # Retrieve Q
         embedded_gramian = embedded_gramian
@@ -183,13 +183,17 @@ class LandmarkMaximumVarianceUnfolding:
         return embedded_data
 
 
-data, labels = sklearn.datasets.make_swiss_roll(250)
+start_time = time.time()
+
+data, labels = sklearn.datasets.make_swiss_roll(400)
 holder = LandmarkMaximumVarianceUnfolding()
-data = holder.fit(data, 6)
-data = holder.fit_transform(data, 2, 6)
-
-print(data)
-
+k = 3
+neighbor_num = 5
+print('Fitting')
+data = holder.fit(data, k, neighbor_num)  # the number of neighbors to fix and number of neighbors lm have
+print('Transforming')
+data = holder.fit_transform(data, 2, k, neighbor_num)  # final dimension and the number of neigbhbors to fix
+print('Graphing')
 plt.scatter(data[:, 0], data[:, 1], c=labels, marker='o')
 plt.show()
 
