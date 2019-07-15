@@ -93,8 +93,8 @@ def load_data(size, num_lm):
     #    np.float,np.float,np.float,np.float,np.float,np.float,np.float)}) #Current set to the same for testing purposes
     #test_dataset = np.loadtxt("C:/TempAna/wdbc.data", delimiter=',', dtype = {'ID':('Diagnosis','Radius','Texture','Perimeter','Area','Smoothness','Compactness','Concavity',
         #'Concave Points','Symmetry','Fractal Dimension')}) #Change later, perhaps?
-    both_dataset = np.genfromtxt("home/tchaizhang/wdbc.data",dtype=np.float,delimiter=',',usecols = (2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31),encoding=None)
-    both_labels = np.genfromtxt("home/tchaizhang/wdbc.data",dtype=None,delimiter=',',usecols = (1),encoding=None)
+    both_dataset = np.genfromtxt("wdbc.data",dtype=np.float,delimiter=',',usecols = (2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31),encoding=None)
+    both_labels = np.genfromtxt("wdbc.data",dtype=None,delimiter=',',usecols = (1),encoding=None)
     tempAll_labels = np.zeros(len(both_labels)) 
     for i in range(len(both_labels)):
         if both_labels[i]=='B':
@@ -275,11 +275,15 @@ def evaluate(test_loader, net, num_points, labels):
         images = images.reshape(-1, n)
         out = net(images.float(), False)
         none, predicted = torch.max(out.data, 1)
+        print(predicted)
+        mal = max(predicted.numpy())
+        print(mal)
         for i in range(len(predicted)):
-            if predicted[i] == 1:
-                predicted[i] = 0
-            else:
+            if predicted[i] == mal:
                 predicted[i] = 1
+            else:
+                predicted[i] = 0
+        print(predicted)
         total += len(labels)
         correct += (predicted == labels.long()).sum().item()
         #print('Hyperparameters: num_lm: %f, batch_size: %f, lbda: %f, k_start: %f, k_lm: %f, k_other: %f, First Dimension: %f, Second Dimension: %f' % (num_lm,batch_size,lbda,k_start,k_lm,k_other, linear_dim1, linear_dim2))
@@ -322,27 +326,39 @@ temp_subset = num_lm + (batch_size * 5)
 
 #linear_dim2 = 2 + number
 #linear_dim1 = 700
-lbda = 10000 + (10000 * number)
-k_lm = 1
-k_other = 1
-k_start = 1
-run()
+linear_dim1 = 10 + (5 * number)
+k_lm = 4
+k_other = 9
+k_start = 6
+lbda = 10000
+num_lm = 10
+linear_dim2 = 2
 while k_start < 20:
-    k_lm = 1
+    k_lm = 4
     batch_size = 60
     while k_lm < 20:
-        k_other = 1
+        k_other = 9
         batch_size = 60
         while k_other < 20:
-            try:
-                batch_size = 60
-                temp_subset = num_lm + (batch_size * 5)
-                run()
-            except:
-                print("Error with'Hyperparameters: num_lm: %f, batch_size: %f, lbda: %f, k_start: %f, k_lm: %f, k_other: %f, First Dimension: %f, Second Dimension: %f" % (num_lm,batch_size,lbda,k_start,k_lm,k_other, linear_dim1, linear_dim2))
-            k_other += 1 
-        k_lm += 1
-    k_start += 1
+            lbda = 10000
+            batch_size = 60
+            while lbda < 50000:
+                num_lm = 10
+                while num_lm < 59:
+                    linear_dim2 = 2
+                    while linear_dim2 < 10:
+                        try:
+                            batch_size = 60
+                            temp_subset = num_lm + (batch_size * 5)
+                            run()
+                        except:
+                            print("Error with'Hyperparameters: num_lm: %f, batch_size: %f, lbda: %f, k_start: %f, k_lm: %f, k_other: %f, First Dimension: %f, Second Dimension: %f" % (num_lm,batch_size,lbda,k_start,k_lm,k_other, linear_dim1, linear_dim2))
+                        linear_dim2 += 1
+                    num_lm += 3
+                lbda += 10000
+            k_other += 2 
+        k_lm += 2
+    k_start += 2
 
 
 run()
