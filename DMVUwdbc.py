@@ -294,6 +294,7 @@ def evaluate(test_loader, net, num_points, labels):
         holder_labels = labels
         x += 1
         final_score = 100 * correct / total
+    print(x)
     return final_score
 
 
@@ -314,7 +315,7 @@ def run():
     test_loader = torch.utils.data.DataLoader(dataset=test_dataset, batch_size=num_points, shuffle=False)
     return evaluate(test_loader, net, num_points, test_labels)
 
-number = int(sys.argv[1])
+# number = int(sys.argv[1])
 
 num_lm = 30
 batch_size = 60

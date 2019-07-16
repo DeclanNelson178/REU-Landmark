@@ -5,8 +5,10 @@ from torch.autograd import Variable
 import sklearn.datasets
 from sklearn.neighbors import NearestNeighbors
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 import time
+from sklearn.model_selection import train_test_split
 start_time = time.time()
 torch.manual_seed(2)
 import random
@@ -17,31 +19,33 @@ random.seed(2)
 # Hyper paramters
 m, n, divisor = 0, 0, 0  # will reset these later
 
-num_lm = 200
-batch_size = 400
-size = (batch_size * 4) + num_lm
+num_lm = 20
+batch_size = 60
+size = (batch_size * 5) + num_lm
 linear_dim1 = 10
 linear_dim2 = 2
-lbda = 100000  # 1000000
-epoch = 5
-squeeze = 2
+lbda = 10000  # 1000000
+epoch = 5000
+squeeze = 1
 set_random = False
-k_start = 3  # how you find landmarks based off of number of nearest neighbors
+k_start = 4 # how you find landmarks based off of number of nearest neighbors
 k_lm = 5  # number of landmarks each landmark has
-k_lm = 4  # number of landmarks each landmark has
-k_other = 4  # number of landmarks each regular points has
+k_lm = 3  # number of landmarks each landmark has
+k_other = 3  # number of landmarks each regular points has
 
 
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
-        self.f = nn.Linear(3, linear_dim1, bias=True)
-        self.f2 = nn.Linear(linear_dim1, linear_dim2, bias=True)
+        self.f = nn.Linear(16, 10, bias=True)
+        self.f2 = nn.Linear(10, 5, bias=True)
+        self.f3 = nn.Linear(5, 2, bias=True)
 
     def encode(self, x):
-        m = nn.PReLU()
+        m = nn.LeakyReLU()
         x = m(self.f(x))
-        x = self.f2(x)
+        x = m(self.f2(x))
+        x = self.f3(x)
         return x
 
     def decode(self, x):
@@ -83,13 +87,16 @@ def normalize(data):
 def load_data(size, num_lm):
     global divisor, m, n, batch_size, set_random
     # import data
-    data, labels = sklearn.datasets.make_swiss_roll(size)
-    # data, labels = shuffle(data, labels)
+    data = pd.read_csv('pol_data.csv', delimiter=',').values[:, :-1]
+    labels = np.asarray([0,1,1,1,1,1,0,0,1,0,0,1,1,0,0,1,1,0,1,1,1,1,1,1,1,1,1,0,1,0,1,1,0,1,0,0,0,0,1,1,1,1,1,1,1,1,1,1,0,1,0,1,0,1,0,0,0,0,0,1,0,1,1,1,0,0,0,1,1,1,0,1,0,1,1,1,1,1,0,1,1,0,0,0,1,0,0,1,0,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,0,0,1,1,1,0,1,0,1,1,1,0,1,0,0,0,0,0,1,0,0,1,1,1,1,1,0,0,0,0,0,1,1,1,0,0,0,1,1,1,0,1,0,1,0,1,1,1,0,0,0,1,0,1,1,1,1,0,1,1,0,0,1,1,1,0,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,0,1,0,0,1,1,1,0,1,0,1,1,1,1,1,1,0,1,0,0,1,1,1,0,1,1,0,1,1,0,1,1,1,1,1,0,0,0,1,1,0,0,0,0,1,0,1,0,1,1,1,0,0,1,0,1,1,1,1,0,0,1,0,0,1,0,1,1,0,0,1,1,1,1,1,1,1,1,0,0,1,1,1,1,1,0,0,1,0,0,0,0,1,0,0,0,1,1,1,1,1,1,1,1,1,1,1,0,0,1,1,1,0,1,0,0,0,0,0,1,0,1,0,1,1,0,0,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,0,1,1,1,1,0,1,1,1,0,0,1,1,0,1,0,0,0,1,0,1,0,1,0,1,0,0,0,1,0,1,1,1,0,0,1,1,1,1,0,1,1,1,1,0,1,1,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,0,0,1,1,1,1,1,0,0,0,0,0,0,0,1,1,1,0,0,1,0,0,1,1,0,1,1,1,0,1,1,1,1,1,1,0,1,1,0,1,0,0])
+    test_data = data[size:, :]
+    test_labels = labels[size:]
+    print(size)
+    data = data[:size, :]
+    labels = labels[:size]
     m = np.size(data, 0)
     n = np.size(data, 1)
-    data = normalize(data)
-    saveLabels = labels
-    saveData = data
+    # data = normalize(data)
     # make landmarks, select x random points in the data set
     land_marks = np.empty((num_lm, n))
     top_landmarks_idxs = []
@@ -108,7 +115,7 @@ def load_data(size, num_lm):
         data = np.delete(data, top_landmarks_idxs, axis=0)
 
     landmark_neighbors = NearestNeighbors(n_neighbors=k_lm).fit(land_marks).kneighbors_graph(land_marks).todense()
-    divisor = int(size / batch_size)
+    divisor = int(size / batch_size) # review this line
     batch_loader = np.zeros((divisor, batch_size + num_lm, n))
     batch_graph = np.zeros((divisor, batch_size + num_lm, batch_size + num_lm))
     for i in range(divisor):
@@ -127,7 +134,7 @@ def load_data(size, num_lm):
         holder = np.concatenate((holder, land_marks))
         batch_loader[i] = holder
     batch_size += num_lm
-    return batch_loader, land_marks, labels, data, batch_graph,top_landmarks_idxs, saveData, saveLabels, landmark_neighbors
+    return batch_loader, land_marks, labels, data, batch_graph, top_landmarks_idxs, test_data, test_labels, landmark_neighbors
 
 
 def train_net(epoch, data, net, opti, batch_graph):
@@ -207,19 +214,19 @@ def pairwise_distances(x, y=None):
 
 
 def evaluate(data, net, t, landmarks):
-    fig = plt.figure()
-    ax = plt.axes(projection='3d')
-    ax.scatter(data[:, 0], data[:, 1], data[:, 2], c=t)
-    ax.scatter(data[landmarks, 0], data[landmarks, 1], data[landmarks, 2], c='Red', marker='^', alpha=1, s=200)
-    plt.show()
     # data = np.concatenate((data, landmarks), axis=0)
-    out = net(torch.from_numpy(data).float(), False)
-    # print(time.time() - start_time)
-    out = out.detach().numpy()
+    nothing, holder = sklearn.datasets.make_swiss_roll(len(t))
+    for i in range(len(t)):
+        if t[i] == 0:
+            holder[i] = 13.71865229
+        else:
+            holder[i] = 7.28209531
     print(t.shape)
-    plt.scatter(out[:, 0], out[:, 1], c=t, marker='o')
-    if not set_random:
-        plt.scatter(out[landmarks, 0], out[landmarks, 1], c='Red', marker='+')
+    out = net(torch.from_numpy(data).float(), False)
+    # print(time.time() - start_time
+    out = out.detach().numpy()
+    print(out.shape)
+    plt.scatter(out[:, 0], out[:, 1], c=holder, marker='o')
     plt.show()
 
 

@@ -297,7 +297,7 @@ linear_dim2 = 8
 lbda = 10000 + (10000 * number)
 
 k_start = 1
-while k_start < 20
+while k_start < 20:
     k_lm = 1
     while k_lm < 20:
         k_other = 1
