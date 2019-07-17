@@ -225,6 +225,8 @@ def evaluate(data, net, t, landmarks):
     print(time.time() - start_time)
     t = t.astype(float)
     out = out.detach().numpy()
+    print('New score metric')
+    print(score(out, t))
     cmap = colors.ListedColormap(['red','blue'])
     plt.scatter(out[:, 0], out[:, 1], c=t, cmap=cmap, marker='o')
     kmeans = KMeans(n_clusters=2)
@@ -243,22 +245,45 @@ def run():
     train_net(epoch, batch_loader, net, opti, batch_graph)
     evaluate(test_data, net, test_labels, lmIndex)
 
+
+def score(final_data, labels):
+    m = np.size(final_data, 0)
+    # Final Scoring
+    eval_arr = np.zeros((10, 2))
+    count_arr = np.zeros(10)
+    for i in range(0, m):
+        color_num = int(labels[i])
+        eval_arr[color_num][0] += final_data[i][0]
+        eval_arr[color_num][1] += final_data[i][1]
+        count_arr[color_num] += 1
+    for i in range(0, 10):
+        eval_arr[i][0] = eval_arr[i][0] / count_arr[i]
+        eval_arr[i][1] = eval_arr[i][1] / count_arr[i]
+    count = 0
+    for i in range(m):
+        min_center = 0
+        min_center_dist = (final_data[i][0] - eval_arr[0][0]) ** 2 + (final_data[i][1] - eval_arr[0][1]) ** 2
+        for j in range(1, 10):
+            if ((final_data[i][0] - eval_arr[j][0]) ** 2 + (final_data[i][1] - eval_arr[j][1]) ** 2) < min_center_dist:
+                min_center_dist = (final_data[i][0] - eval_arr[j][0]) ** 2 + (final_data[i][1] - eval_arr[j][1]) ** 2
+                min_center = j
+        if min_center == labels[i]:
+            count += 1
+    return count / m
+
 set_size = 435
 batch_size = 70
 test_size = 135
 num_lm = 20
 size = (batch_size * 4) + num_lm
-lbda = 1000
+lbda = 10000
 lm_epoch = 5000
 epoch = 5000
-k_start = 5
-k_lm  = 2
-k_other = 2
+k_start = 3
+k_lm  = 4
+k_other = 4
 m = 300
 n = 16
 categories = 2
 
-for j in range(10, 20):
-    num_lm = j
-    print('num lm = {}'.format(j))
-    run()
+run()
