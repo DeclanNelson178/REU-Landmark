@@ -1,5 +1,6 @@
 import cvxpy as cp
 import sklearn.datasets
+import torch
 from sklearn.neighbors import NearestNeighbors
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
@@ -14,6 +15,7 @@ from mpl_toolkits import mplot3d
 import matplotlib.pyplot as plt
 from matplotlib import colors
 
+
 def normalize(data):
     row = np.size(data, 0)
     col = np.size(data, 1)
@@ -27,29 +29,6 @@ def normalize(data):
             data[i][j] = data[i][j] - col_sum
     return data
 
-class Net(nn.Module):
-    def __init__(self):
-        super(Net, self).__init__()
-        self.f = nn.Linear(linear_dim0, linear_dim1, bias=True)
-        self.f2 = nn.Linear(linear_dim1, linear_dim2, bias=True)
-
-    def encode(self, x):
-        p = nn.LeakyReLU()
-        x = p(self.f(x))
-        x = self.f2(x)
-        #x = p(self.f3(x))
-        #x = p(self.f4(x))
-        #x = self.f5(x)
-        return x
-
-    def decode(self, x):
-        return x
-
-    def forward(self, x, decode):
-        x = self.encode(x)
-        if decode:
-            x = self.decode(x)
-        return x
 
 
 # load data set, select land marks at random and remove from data set, return a train_loader
@@ -80,6 +59,7 @@ def pca(r):
     data = pca.fit_transform(data)
 
     return data, labels
+
 
 def mvu(k, r, file):
     #x = np.loadtxt(file, delimiter=" ")
@@ -116,6 +96,7 @@ def mvu(k, r, file):
             sd_matrix[i][j] = dist_sum
             sd_matrix[j][i] = dist_sum
 
+    print('Defining the neighborhood')
     # define the neighborhood
     neighborhood = np.zeros((m, m))
     for i in range(0, m):
@@ -126,7 +107,7 @@ def mvu(k, r, file):
         for j in range(0, k):
             neighborhood[row[j][0]][i] = 1
     neighborhood = neighborhood.transpose()
-
+    print('Setting constraints')
 
     # code constraints and solve problem
     kernel = cp.Variable((m, m), symmetric=True)
@@ -136,8 +117,10 @@ def mvu(k, r, file):
         for j in range(0, m):
             if neighborhood[i][j] == 1:
                 constraints += [kernel[i][i] + kernel[j][j] - (2*kernel[i][j]) == sd_matrix[i][j]]
+    print('Loading constraints')
     prob = cp.Problem(cp.Maximize(cp.trace(kernel)), constraints)
-    prob.solve()
+    print('Solving')
+    prob.solve(verbose=True)
     kernel = kernel.value
 
     # find all eigenvalues and eigenvectors
@@ -153,6 +136,7 @@ def mvu(k, r, file):
     # multiply the pc matrix by the x matrix to get the final answer
     final_data = lbda.dot(e_vecs.T).T
     return final_data
+
 
 def score(final_data, labels):
     m = np.size(final_data, 0)
@@ -188,13 +172,13 @@ def graph(final_data, labels):
 
 def run():
     pca_data_set, num_labels = pca(linear_dim1)
+    print('Running MVU')
     data_set = mvu(k, linear_dim2, pca_data_set)
     print("MVU complete")
     accuracy_score = score(data_set, num_labels)
     print(accuracy_score)
-    if accuracy_score >= 0:
-        print(time.time() - start_time)
-        graph(data_set, num_labels)
+    print(time.time() - start_time)
+    graph(data_set, num_labels)
 
 
 # number = int(sys.argv[1])
@@ -230,6 +214,6 @@ def run():
 linear_dim1 = 15
 linear_dim2 = 2
 linear_dim0 = 30
-k = 2
+k = 8
 
 run()

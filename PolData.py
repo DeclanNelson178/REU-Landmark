@@ -19,6 +19,7 @@ import random
 from mpl_toolkits import mplot3d
 random.seed(2)
 
+lm_epoch = 5000
 set_size = 435
 batch_size = 70
 test_size = 135
@@ -41,7 +42,7 @@ class Net(nn.Module):
         self.f2 = nn.Linear(10, 2, bias=True)
 
     def encode(self, x):
-        m = nn.PReLU()
+        m = nn.LeakyReLU()
         x = m(self.f(x))
         x = self.f2(x)
         return x
@@ -127,7 +128,6 @@ def load_data():
     batch_graph = np.zeros((divisor, batch_size + num_lm, batch_size + num_lm))
     for i in range(divisor):
         holder = data[batch_size * i: batch_size * (i + 1)]
-        print(land_marks.shape)
         holder_graph = NearestNeighbors(n_neighbors=k_other).fit(land_marks).kneighbors_graph(holder).todense()
         for j in range(batch_size):  # copy over the holder graph
             for l in range(num_lm):
@@ -165,7 +165,7 @@ def train_net(epoch, data, net, opti, batch_graph):
             opti.zero_grad()
             loss.backward()
             opti.step()
-            print('Epoch: %f, Step: %f, Loss: %.2f' % (num, batch_id + 1, loss.data.cpu().numpy()))
+            # print('Epoch: %f, Step: %f, Loss: %.2f' % (num, batch_id + 1, loss.data.cpu().numpy()))
 
 
 def train_lms(epoch, land_marks, net, opti, landmark_neighbors):
@@ -184,7 +184,7 @@ def train_lms(epoch, land_marks, net, opti, landmark_neighbors):
         opti.zero_grad()
         loss.backward()
         opti.step()
-        print('LM Epoch: %f, Loss: %.2f' % (num, loss.data.cpu().numpy()))
+        # print('LM Epoch: %f, Loss: %.2f' % (num, loss.data.cpu().numpy()))
 
 
 def make_neighborhood(batch):
@@ -222,7 +222,7 @@ def pairwise_distances(x, y=None):
 
 def evaluate(data, net, t, landmarks):
     out = net(torch.from_numpy(data).float(), False)
-    # print(time.time() - start_time)
+    print(time.time() - start_time)
     t = t.astype(float)
     out = out.detach().numpy()
     cmap = colors.ListedColormap(['red','blue'])
@@ -231,7 +231,7 @@ def evaluate(data, net, t, landmarks):
     kmeans.fit(out)
     vmeasure = v_measure_score(t, kmeans.labels_)
     print(vmeasure)
-    plt.show()
+    # plt.show()
 
 
 def run():
@@ -239,9 +239,26 @@ def run():
     batch_loader, land_marks, labels, data, batch_graph, lmIndex, test_data, test_labels, landmark_neighbors = load_data()
     net = Net()
     opti = torch.optim.Adam(net.parameters(), weight_decay=1e-3)
-    train_lms(epoch, land_marks, net, opti, landmark_neighbors)
+    train_lms(lm_epoch, land_marks, net, opti, landmark_neighbors)
     train_net(epoch, batch_loader, net, opti, batch_graph)
     evaluate(test_data, net, test_labels, lmIndex)
 
+set_size = 435
+batch_size = 70
+test_size = 135
+num_lm = 20
+size = (batch_size * 4) + num_lm
+lbda = 1000
+lm_epoch = 5000
+epoch = 5000
+k_start = 5
+k_lm  = 2
+k_other = 2
+m = 300
+n = 16
+categories = 2
 
-run()
+for j in range(10, 20):
+    num_lm = j
+    print('num lm = {}'.format(j))
+    run()
